@@ -3,116 +3,471 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Galeria Imersiva 360° | VR Mode</title>
-  
-  <!-- Pré-conexão para acelerar carregamento das fontes e biblioteca no GitHub Pages -->
+  <title>Palmas 360° | Galeria Imersiva Categorizada</title>
+
+  <!-- Pré-conexão para performance no GitHub Pages -->
   <link rel="preconnect" href="https://aframe.io" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
+
   <!-- Bibliotecas Core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #00d2ff;
+      --accent-glow: rgba(0, 210, 255, 0.45);
+      --accent-soft: rgba(0, 210, 255, 0.14);
+      --glass-bg: rgba(12, 16, 22, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --text-main: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.65);
+      --sidebar-width: 340px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     html, body {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #000;
       font-family: 'DM Sans', sans-serif;
+      color: var(--text-main);
       user-select: none;
       -webkit-user-select: none;
     }
 
-    /* ── CONFIGURAÇÃO DO BOTÃO VR (CRUCIAL) ── */
+    /* ── CONFIGURAÇÃO DO BOTÃO VR DO A-FRAME ── */
     .a-enter-vr {
-      z-index: 10000 !important;
-      bottom: 140px !important; 
-      right: 20px !important;
+      z-index: 90 !important;
+      bottom: 24px !important;
+      right: 24px !important;
       display: block !important;
     }
     .a-enter-vr-button {
       background-color: rgba(0, 210, 255, 0.85) !important;
-      border-radius: 8px !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
       transition: transform 0.2s ease, background-color 0.2s ease !important;
     }
     .a-enter-vr-button:hover {
-      background-color: rgba(0, 210, 255, 1) !important;
+      background-color: var(--accent) !important;
       transform: scale(1.05);
     }
 
-    /* UI Overlay */
-    #ui {
+    /* ── CAMADA GERAL DE INTERFACE (UI OVERLAY) ── */
+    #ui-layer {
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: 10;
+      z-index: 20;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.35s ease;
     }
-    #ui.vr-hidden {
-      opacity: 0;
+    #ui-layer.vr-hidden {
+      opacity: 0 !important;
       pointer-events: none !important;
     }
 
-    /* Cabeçalho */
-    #header {
-      padding: 20px 30px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+    /* ── BARRA SUPERIOR (BOTÃO MENU + INFO DA CENA ATUAL) ── */
+    #top-bar {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 15px;
+      justify-content: space-between;
+      padding: 18px 24px;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+      gap: 12px;
     }
-    #header-info h1 {
-      color: #fff;
-      font-size: 1.1rem;
-      font-weight: 500;
-      letter-spacing: 1px;
+
+    .top-left-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      pointer-events: auto;
+    }
+
+    /* Botão Hambúrguer / Toggle Menu */
+    #menu-toggle-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    #menu-toggle-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    #menu-toggle-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+    }
+
+    /* Badge de Local e Cena Atual */
+    #current-location-badge {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      padding: 8px 16px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    #badge-category {
+      font-size: 0.72rem;
       text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--accent);
+      font-weight: 700;
     }
-    #scene-title {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.85rem;
-      margin-top: 2px;
+    #badge-scene {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-top: 1px;
     }
+
+    /* Grupo Direito: Contador + Botão Ocultar UI (Visão Livre) */
+    .top-right-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
     #scene-counter {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 8px 18px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 9px 16px;
       border-radius: 30px;
-      color: #00d2ff;
-      font-size: 0.85rem;
+      color: var(--accent);
+      font-size: 0.82rem;
       font-weight: 600;
-      border: 1px solid rgba(0, 210, 255, 0.3);
+      border: 1px solid rgba(0, 210, 255, 0.35);
       white-space: nowrap;
     }
 
-    /* Indicador sutil de download entre trocas de fotos */
+    #free-view-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      title: "Modo Visão Livre (Ocultar Menus)";
+    }
+    #free-view-btn:hover,
+    #free-view-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* ── MENU LATERAL FLUTUANTE (GLASSMORPHISM + ACORDEÃO) ── */
+    #sidebar {
+      position: fixed;
+      top: 82px;
+      left: 24px;
+      bottom: 24px;
+      width: var(--sidebar-width);
+      max-width: calc(100vw - 48px);
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      z-index: 30;
+      transform: translateX(0);
+      opacity: 1;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+      overflow: hidden;
+    }
+
+    #sidebar.collapsed {
+      transform: translateX(calc(-100% - 40px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sidebar-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .sidebar-close-mobile {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* Lista de Categorias (Acordeão) */
+    #accordion-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 20px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+    #accordion-container::-webkit-scrollbar {
+      width: 5px;
+    }
+    #accordion-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .category-item {
+      margin-bottom: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+      transition: border-color 0.25s ease, background 0.25s ease;
+    }
+    .category-item.expanded {
+      border-color: rgba(0, 210, 255, 0.35);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .category-header {
+      width: 100%;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-align: left;
+      transition: color 0.2s ease;
+    }
+    .category-header:hover {
+      color: var(--accent);
+    }
+
+    .category-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .category-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .category-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .category-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    .chevron-icon {
+      width: 18px;
+      height: 18px;
+      stroke: var(--text-muted);
+      transition: transform 0.3s ease;
+    }
+    .category-item.expanded .chevron-icon {
+      transform: rotate(180deg);
+      stroke: var(--accent);
+    }
+
+    /* Corpo expansível do acordeão */
+    .category-scenes {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .category-scenes-inner {
+      padding: 6px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Botão de cada Cena 360 dentro da Categoria */
+    .scene-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      color: rgba(255, 255, 255, 0.85);
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+    .scene-btn:hover {
+      background: rgba(0, 210, 255, 0.12);
+      border-color: rgba(0, 210, 255, 0.3);
+      color: #fff;
+      transform: translateX(3px);
+    }
+    .scene-btn.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+    .scene-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .scene-num {
+      font-size: 0.75rem;
+      opacity: 0.75;
+      min-width: 22px;
+    }
+    .scene-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── CONTROLES RÁPIDOS INFERIORES (ANTERIOR / PRÓXIMA) ── */
+    #bottom-bar {
+      padding: 16px 24px 24px;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .nav-pill {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      padding: 6px;
+      border-radius: 40px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
+    }
+    .nav-pill button {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-pill button:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .nav-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Modo Visão Livre (Oculta sidebar, badge e barra inferior para girar o celular livremente) */
+    body.free-view-mode #sidebar,
+    body.free-view-mode #current-location-badge,
+    body.free-view-mode #scene-counter,
+    body.free-view-mode #bottom-bar {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* ── INDICADORES DE CARREGAMENTO E TRANSIÇÃO FADE ── */
     #mini-loader {
       position: fixed;
-      top: 85px;
-      right: 30px;
-      background: rgba(0, 0, 0, 0.75);
+      top: 82px;
+      right: 24px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
       border: 1px solid rgba(0, 210, 255, 0.4);
-      color: #00d2ff;
-      padding: 6px 14px;
+      color: var(--accent);
+      padding: 8px 16px;
       border-radius: 20px;
-      font-size: 0.75rem;
-      letter-spacing: 0.5px;
+      font-size: 0.78rem;
+      font-weight: 500;
       display: flex;
       align-items: center;
       gap: 8px;
       opacity: 0;
       transform: translateY(-10px);
       transition: all 0.25s ease;
-      z-index: 50;
+      z-index: 60;
       pointer-events: none;
     }
     #mini-loader.visible {
@@ -120,92 +475,18 @@
       transform: translateY(0);
     }
     .mini-spinner {
-      width: 12px;
-      height: 12px;
+      width: 13px;
+      height: 13px;
       border: 2px solid rgba(0, 210, 255, 0.2);
-      border-top-color: #00d2ff;
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
 
-    /* Seletor de Cenas Inferior */
-    #scene-selector {
-      background: linear-gradient(to top, rgba(0,0,0,0.92) 30%, transparent 100%);
-      padding: 20px 0 35px;
-      pointer-events: all;
-    }
-    
-    #cards-container {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding: 10px 30px;
-      scrollbar-width: none; 
-      max-width: 1400px;
-      margin: 0 auto;
-      -webkit-overflow-scrolling: touch;
-      scroll-behavior: smooth;
-    }
-    
-    #cards-container::-webkit-scrollbar {
-      display: none;
-    }
-
-    .scene-card {
-      flex: 0 0 auto;
-      width: 62px;
-      height: 62px;
-      background: rgba(255,255,255,0.06);
-      border: 2px solid rgba(255,255,255,0.12);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      outline: none;
-    }
-
-    .scene-card span {
-      color: #fff;
-      font-weight: 500;
-      font-size: 1.05rem;
-      pointer-events: none;
-    }
-
-    .scene-card:hover {
-      border-color: #00d2ff;
-      transform: scale(1.1);
-      background: rgba(0, 210, 255, 0.12);
-    }
-
-    .scene-card.active {
-      border-color: #00d2ff;
-      background: #00d2ff;
-      box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
-    }
-    
-    .scene-card.active span {
-      color: #000;
-      font-weight: 700;
-    }
-
-    .scene-card.loading-card {
-      border-color: #00d2ff;
-      animation: pulseBorder 1s infinite alternate;
-    }
-
-    @keyframes pulseBorder {
-      from { box-shadow: 0 0 5px rgba(0, 210, 255, 0.2); }
-      to { box-shadow: 0 0 18px rgba(0, 210, 255, 0.8); }
-    }
-
-    /* Carregamento Inicial */
     #loading {
       position: fixed;
       inset: 0;
-      background: #0a0a0a;
+      background: #080a0f;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -217,26 +498,15 @@
       opacity: 0;
       pointer-events: none;
     }
-    
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(0, 210, 255, 0.1);
-      border-top-color: #00d2ff;
+      width: 52px;
+      height: 52px;
+      border: 3px solid rgba(0, 210, 255, 0.12);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    #loading-text {
-      color: #00d2ff;
-      margin-top: 25px;
-      font-size: 0.8rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-align: center;
-      padding: 0 20px;
-    }
 
     #flash {
       position: fixed;
@@ -244,77 +514,108 @@
       background: #000;
       opacity: 0;
       pointer-events: none;
-      z-index: 99;
-      transition: opacity 0.25s ease;
+      z-index: 80;
+      transition: opacity 0.28s ease;
     }
-    #flash.active { opacity: 1; }
+    #flash.active {
+      opacity: 1;
+    }
 
-    @media (max-width: 600px) {
-      #header { padding: 16px 20px; }
-      #header-info h1 { font-size: 0.95rem; }
-      #cards-container { padding: 10px 20px; gap: 10px; }
-      .scene-card { width: 54px; height: 54px; }
-      .scene-card span { font-size: 0.95rem; }
-      .a-enter-vr { bottom: 125px !important; right: 16px !important; }
+    /* ── RESPONSIVIDADE MOBILE ── */
+    @media (max-width: 768px) {
+      #top-bar {
+        padding: 14px 16px;
+      }
+      #current-location-badge {
+        padding: 6px 12px;
+      }
+      #badge-category {
+        font-size: 0.65rem;
+      }
+      #badge-scene {
+        font-size: 0.84rem;
+      }
+      #scene-counter {
+        display: none;
+      }
+      #sidebar {
+        top: 74px;
+        left: 16px;
+        right: 16px;
+        bottom: 84px;
+        width: auto;
+        max-width: none;
+      }
+      .sidebar-close-mobile {
+        display: block;
+      }
+      #bottom-bar {
+        padding: 12px 16px 20px;
+      }
+      .a-enter-vr {
+        bottom: 20px !important;
+        right: 16px !important;
+      }
     }
   </style>
 </head>
 <body>
 
+<!-- Tela de Carregamento Inicial -->
 <div id="loading">
   <div class="spinner"></div>
-  <p id="loading-text">Acessando Experiência 360°...</p>
+  <p style="color: #00d2ff; margin-top: 22px; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;">
+    Carregando Palmas 360°...
+  </p>
 </div>
 
+<!-- Indicador de Download entre Trocas de Cena -->
 <div id="mini-loader">
   <div class="mini-spinner"></div>
-  <span>Carregando cena...</span>
+  <span>Carregando vista 360°...</span>
 </div>
 
+<!-- Cortina de Transição Suave (Fade-in / Fade-out) -->
 <div id="flash"></div>
 
-<!-- Cena A-Frame Otimizada -->
-<a-scene id="main-scene" 
-         vr-mode-ui="enabled: true" 
-         embedded 
-         style="position:fixed; inset:0;" 
+<!-- ── CENA 360° E AMBIENTE WEBVR (A-FRAME) ── -->
+<a-scene id="main-scene"
+         vr-mode-ui="enabled: true"
+         embedded
+         style="position: fixed; inset: 0;"
          renderer="antialias: true; colorManagement: true; powerPreference: high-performance;">
-  
+
   <a-assets id="assets-manager" timeout="15000"></a-assets>
 
-  <!-- Skybox com rotação controlada de forma inteligente -->
-  <a-sky id="skybox" 
-         src="" 
-         rotation="0 -90 0" 
+  <!-- Esfera 360° com rotação suave que pausa ao interagir -->
+  <a-sky id="skybox"
+         src=""
+         rotation="0 -90 0"
          animation="property: rotation; to: 0 270 0; dur: 120000; easing: linear; loop: true; pauseEvents: pause-rotation; resumeEvents: resume-rotation">
   </a-sky>
 
-  <!-- Painel de Navegação 3D exclusivo para quem está com os Óculos VR (acionado pelo olhar/fuse) -->
+  <!-- Painel 3D interno para navegação quando estiver usando Óculos VR -->
   <a-entity id="vr-hud" position="0 -0.65 -1.8" rotation="-25 0 0">
-    <!-- Botão Anterior -->
     <a-entity id="vr-prev-btn" class="clickable" position="-0.45 0 0"
               geometry="primitive: plane; width: 0.7; height: 0.28"
-              material="color: #0a0a0a; opacity: 0.8; shader: flat"
+              material="color: #0a0a0a; opacity: 0.82; shader: flat"
               animation__mouseenter="property: scale; to: 1.08 1.08 1; dur: 200; startEvents: mouseenter"
               animation__mouseleave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
       <a-text value="< ANTERIOR" align="center" color="#00d2ff" width="2.2" position="0 0 0.01"></a-text>
     </a-entity>
 
-    <!-- Botão Próxima -->
     <a-entity id="vr-next-btn" class="clickable" position="0.45 0 0"
               geometry="primitive: plane; width: 0.7; height: 0.28"
-              material="color: #0a0a0a; opacity: 0.8; shader: flat"
+              material="color: #0a0a0a; opacity: 0.82; shader: flat"
               animation__mouseenter="property: scale; to: 1.08 1.08 1; dur: 200; startEvents: mouseenter"
               animation__mouseleave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
       <a-text value="PROXIMA >" align="center" color="#00d2ff" width="2.2" position="0 0 0.01"></a-text>
     </a-entity>
 
-    <!-- Indicador 3D do número da foto -->
-    <a-text id="vr-counter-text" value="Foto 1 / 48" align="center" color="#ffffff" width="2" position="0 0.24 0"></a-text>
+    <a-text id="vr-counter-text" value="Palmas 360" align="center" color="#ffffff" width="1.9" position="0 0.24 0"></a-text>
   </a-entity>
 
   <a-camera look-controls="reverseMouseDrag: false; touchEnabled: true" wasd-controls="enabled: false">
-    <!-- Cursor para interação em modo VR com feedback visual de progresso (fuse) -->
     <a-entity id="vr-cursor"
               cursor="fuse: true; fuseTimeout: 1500"
               position="0 0 -1"
@@ -328,108 +629,234 @@
   </a-camera>
 </a-scene>
 
-<div id="ui">
-  <div id="header">
-    <div id="header-info">
-      <h1>Imersão VR</h1>
-      <div id="scene-title">Explore em 360°</div>
-    </div>
-    <div id="scene-counter">Foto 1 / 48</div>
-  </div>
+<!-- ── INTERFACE DE USUÁRIO (GLASSMORPHISM OVERLAY) ── -->
+<div id="ui-layer">
 
-  <div id="scene-selector">
-    <div id="cards-container">
-      <!-- Botões gerados via JS -->
+  <!-- Cabeçalho Flutuante -->
+  <header id="top-bar">
+    <div class="top-left-group">
+      <button id="menu-toggle-btn" aria-label="Abrir ou fechar menu de lugares" title="Lugares e Cenas">
+        <svg viewBox="0 0 24 24" fill="none">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="15" y2="18"></line>
+        </svg>
+      </button>
+
+      <div id="current-location-badge">
+        <div id="badge-category">Carregando...</div>
+        <div id="badge-scene">Selecione um local</div>
+      </div>
     </div>
-  </div>
+
+    <div class="top-right-group">
+      <div id="scene-counter">1 / 1</div>
+      <button id="free-view-btn" aria-label="Ocultar menus para visão livre" title="Visão Livre (Ocultar/Mostrar UI)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Menu Lateral Categorizado (Acordeão) -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h2>Roteiro 360° • Palmas</h2>
+      <button class="sidebar-close-mobile" id="close-sidebar-btn" aria-label="Fechar menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div id="accordion-container">
+      <!-- Categorias e cenas geradas dinamicamente via JS -->
+    </div>
+  </aside>
+
+  <!-- Navegação Rápida Inferior -->
+  <footer id="bottom-bar">
+    <div class="nav-pill">
+      <button id="btn-prev-scene" type="button" title="Cena Anterior (Seta Esquerda)">
+        &#8592; Anterior
+      </button>
+      <div class="nav-divider"></div>
+      <button id="btn-next-scene" type="button" title="Próxima Cena (Seta Direita)">
+        Próxima &#8594;
+      </button>
+    </div>
+  </footer>
+
 </div>
 
 <script>
-  // ── CONFIGURAÇÃO PADRÃO (Mantém compatibilidade total com sua pasta atual) ──
-  let totalImages = 48;
-  const imagePath = './assets/images/';
-  
-  // Lista opcional de metadados caso queira usar cenas.json no futuro
-  let customScenes = null;
+  /**
+   * ============================================================================
+   * 1. BANCO DE DADOS DE LUGARES E FOTOS 360° (FÁCIL EDIÇÃO)
+   * ============================================================================
+   *
+   * COMO ADICIONAR UMA NOVA FOTO A UM LUGAR EXISTENTE:
+   * 1. Coloque o arquivo .jpg dentro da pasta correspondente (ex: ./assets/praca-dos-girassois/nova-foto.jpg)
+   * 2. No bloco do lugar abaixo, adicione uma nova linha dentro de `cenas: [ ... ]`:
+   *    { titulo: "Nome da Vista", arquivo: "nova-foto.jpg" },
+   *
+   * COMO ADICIONAR UM NOVO LUGAR (ex: Parque Cesamar):
+   * 1. Crie a pasta `./assets/parque-cesamar/` no seu repositório.
+   * 2. Copie um dos blocos `{ id: "...", nome: "...", pasta: "...", cenas: [...] }` abaixo
+   *    e cole no final da lista `LUGARES_PALMAS`.
+   *
+   * DICA DE COMPATIBILIDADE:
+   * Se você ainda estiver usando a pasta antiga `./assets/images/1.jpg` até `48.jpg`,
+   * o campo `fallbackGlobalId` garante que a foto carregue de `./assets/images/`
+   * caso a pasta específica do lugar ainda esteja vazia!
+   */
+  const LUGARES_PALMAS = [
+    {
+      id: "praca-dos-girassois",
+      nome: "Praça dos Girassóis",
+      pasta: "./assets/praca-dos-girassois/",
+      cenas: [
+        { titulo: "Vista Central • Palácio Araguaia", arquivo: "1.jpg", fallbackGlobalId: 1 },
+        { titulo: "Monumento aos Dezoito do Forte", arquivo: "2.jpg", fallbackGlobalId: 2 },
+        { titulo: "Memorial Coluna Prestes", arquivo: "3.jpg", fallbackGlobalId: 3 },
+        { titulo: "Relógio do Sol", arquivo: "4.jpg", fallbackGlobalId: 4 },
+        { titulo: "Fonte Luminosa e Jardins", arquivo: "5.jpg", fallbackGlobalId: 5 },
+        { titulo: "Cruzeiro (Marco Zero)", arquivo: "6.jpg", fallbackGlobalId: 6 }
+      ]
+    },
+    {
+      id: "praia-da-graciosa",
+      nome: "Praia da Graciosa",
+      pasta: "./assets/praia-da-graciosa/",
+      cenas: [
+        { titulo: "Passarela da Orla", arquivo: "1.jpg", fallbackGlobalId: 13 },
+        { titulo: "Píer e Vista para a Ponte", arquivo: "2.jpg", fallbackGlobalId: 14 },
+        { titulo: "Faixa de Areia Principal", arquivo: "3.jpg", fallbackGlobalId: 15 },
+        { titulo: "Quiosques e Calçadão", arquivo: "4.jpg", fallbackGlobalId: 16 },
+        { titulo: "Mirante do Pôr do Sol", arquivo: "5.jpg", fallbackGlobalId: 17 }
+      ]
+    },
+    {
+      id: "palacinho",
+      nome: "Palacinho (Museu Histórico)",
+      pasta: "./assets/palacinho/",
+      cenas: [
+        { titulo: "Fachada Histórica", arquivo: "1.jpg", fallbackGlobalId: 25 },
+        { titulo: "Jardim Externo e Pioneiros", arquivo: "2.jpg", fallbackGlobalId: 26 },
+        { titulo: "Galeria Memória da Construção", arquivo: "3.jpg", fallbackGlobalId: 27 },
+        { titulo: "Gabinete Histórico", arquivo: "4.jpg", fallbackGlobalId: 28 },
+        { titulo: "Varanda Panorâmica", arquivo: "5.jpg", fallbackGlobalId: 29 }
+      ]
+    },
+    {
+      id: "parque-dos-povos-indigenas",
+      nome: "Parque dos Povos Indígenas",
+      pasta: "./assets/parque-dos-povos-indigenas/",
+      cenas: [
+        { titulo: "Praça de Entrada", arquivo: "1.jpg", fallbackGlobalId: 37 },
+        { titulo: "Trilha Ecológica e Córrego", arquivo: "2.jpg", fallbackGlobalId: 38 },
+        { titulo: "Espaço Cultural e Convivência", arquivo: "3.jpg", fallbackGlobalId: 39 },
+        { titulo: "Pista de Caminhada e Bosque", arquivo: "4.jpg", fallbackGlobalId: 40 },
+        { titulo: "Mirante Verde", arquivo: "5.jpg", fallbackGlobalId: 41 }
+      ]
+    }
+  ];
 
-  const sceneEl = document.getElementById('main-scene');
-  const container = document.getElementById('cards-container');
-  const skybox = document.getElementById('skybox');
-  const counter = document.getElementById('scene-counter');
-  const sceneTitleEl = document.getElementById('scene-title');
-  const vrCounterText = document.getElementById('vr-counter-text');
-  const flash = document.getElementById('flash');
-  const loading = document.getElementById('loading');
-  const miniLoader = document.getElementById('mini-loader');
-  const uiOverlay = document.getElementById('ui');
+  // Pasta antiga mantida como fallback automático caso a foto ainda não esteja na subpasta do lugar
+  const FALLBACK_LEGACY_PATH = "./assets/images/";
 
-  let currentScene = 1;
+  /**
+   * ============================================================================
+   * 2. ESTADO INTERNO E INDEXAÇÃO DAS CENAS
+   * ============================================================================
+   */
+  const playlist = []; // Lista linearizada para navegação contínua (Anterior / Próxima)
+  LUGARES_PALMAS.forEach((lugar, catIndex) => {
+    lugar.cenas.forEach((cena, sceneIndex) => {
+      playlist.push({
+        globalIndex: playlist.length,
+        catIndex,
+        sceneIndex,
+        categoriaId: lugar.id,
+        categoriaNome: lugar.nome,
+        pasta: lugar.pasta,
+        titulo: cena.titulo,
+        arquivo: cena.arquivo,
+        fallbackGlobalId: cena.fallbackGlobalId || (playlist.length + 1)
+      });
+    });
+  });
+
+  let currentGlobalIndex = 0;
   let isTransitioning = false;
   let isInVR = false;
 
-  // Cache em memória de URLs já validadas para evitar requisições repetidas
-  const resolvedUrls = new Map();
-  const imageCache = new Map();
-  const MAX_CACHE_SIZE = 6; // Limita o cache para não estourar a memória em celulares
+  // Referências DOM
+  const sceneEl = document.getElementById('main-scene');
+  const skybox = document.getElementById('skybox');
+  const accordionContainer = document.getElementById('accordion-container');
+  const sidebar = document.getElementById('sidebar');
+  const menuToggleBtn = document.getElementById('menu-toggle-btn');
+  const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+  const freeViewBtn = document.getElementById('free-view-btn');
+  const badgeCategory = document.getElementById('badge-category');
+  const badgeScene = document.getElementById('badge-scene');
+  const sceneCounter = document.getElementById('scene-counter');
+  const vrCounterText = document.getElementById('vr-counter-text');
+  const flash = document.getElementById('flash');
+  const loadingScreen = document.getElementById('loading');
+  const miniLoader = document.getElementById('mini-loader');
+  const uiLayer = document.getElementById('ui-layer');
 
-  // ── 1. RESOLUÇÃO INTELIGENTE DE IMAGENS (Evita Erro 404 no GitHub Pages) ──
-  function resolveImageUrl(id) {
-    if (resolvedUrls.has(id)) {
-      return Promise.resolve(resolvedUrls.get(id));
-    }
+  // Cache de imagens e URLs validadas
+  const resolvedUrlCache = new Map();
+  const memoryTextureCache = new Map();
+  const MAX_TEXTURE_CACHE = 6;
 
-    // Se houver um manifesto cenas.json carregado, usa o arquivo definido nele
-    if (customScenes && customScenes[id - 1] && customScenes[id - 1].src) {
-      const explicitUrl = customScenes[id - 1].src.startsWith('http') || customScenes[id - 1].src.startsWith('./')
-        ? customScenes[id - 1].src
-        : `${imagePath}${customScenes[id - 1].src}`;
-      return preloadImageElement(explicitUrl).then(() => {
-        resolvedUrls.set(id, explicitUrl);
-        return explicitUrl;
-      });
-    }
+  /**
+   * ============================================================================
+   * 3. CARREGADOR DE IMAGENS COM FALLBACK INTELIGENTE (ANTI-ERRO 404)
+   * ============================================================================
+   */
+  function getCandidateUrls(item) {
+    const baseName = item.arquivo.replace(/\.[^/.]+$/, "");
+    const cleanFolder = item.pasta.endsWith('/') ? item.pasta : `${item.pasta}/`;
 
-    // Tenta a configuração padrão (.jpg), e faz fallback automático para .JPG ou .webp
+    // 1ª Prioridade: Pasta do lugar (ex: ./assets/praca-dos-girassois/1.jpg, .JPG ou .webp)
     const candidates = [
-      `${imagePath}${id}.jpg`,
-      `${imagePath}${id}.JPG`,
-      `${imagePath}${id}.webp`
+      `${cleanFolder}${item.arquivo}`,
+      `${cleanFolder}${baseName}.JPG`,
+      `${cleanFolder}${baseName}.webp`
     ];
 
-    return new Promise((resolve, reject) => {
-      let index = 0;
-      function tryNext() {
-        if (index >= candidates.length) {
-          reject(new Error(`Imagem ${id} não encontrada em ${imagePath}`));
-          return;
-        }
-        const url = candidates[index++];
-        preloadImageElement(url)
-          .then(() => {
-            resolvedUrls.set(id, url);
-            resolve(url);
-          })
-          .catch(tryNext);
-      }
-      tryNext();
-    });
-  }
-
-  function preloadImageElement(url) {
-    if (imageCache.has(url)) {
-      return Promise.resolve(imageCache.get(url));
+    // 2ª Prioridade (Fallback automático): Pasta legada ./assets/images/
+    if (item.fallbackGlobalId) {
+      candidates.push(
+        `${FALLBACK_LEGACY_PATH}${item.fallbackGlobalId}.jpg`,
+        `${FALLBACK_LEGACY_PATH}${item.fallbackGlobalId}.JPG`,
+        `${FALLBACK_LEGACY_PATH}${item.fallbackGlobalId}.webp`
+      );
     }
 
+    return [...new Set(candidates)];
+  }
+
+  function preloadImage(url) {
+    if (memoryTextureCache.has(url)) {
+      return Promise.resolve(memoryTextureCache.get(url));
+    }
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        // Gerenciamento simples de fila de memória (FIFO)
-        if (imageCache.size >= MAX_CACHE_SIZE) {
-          const oldestKey = imageCache.keys().next().value;
-          imageCache.delete(oldestKey);
+        if (memoryTextureCache.size >= MAX_TEXTURE_CACHE) {
+          const oldest = memoryTextureCache.keys().next().value;
+          memoryTextureCache.delete(oldest);
         }
-        imageCache.set(url, img);
+        memoryTextureCache.set(url, img);
         resolve(img);
       };
       img.onerror = reject;
@@ -437,112 +864,251 @@
     });
   }
 
-  // Pré-carrega silenciosamente a foto seguinte e a anterior para transição instantânea
-  function prefetchNeighbors(id) {
-    const nextId = id < totalImages ? id + 1 : 1;
-    const prevId = id > 1 ? id - 1 : totalImages;
-    resolveImageUrl(nextId).catch(() => {});
-    resolveImageUrl(prevId).catch(() => {});
-  }
-
-  // ── 2. CONSTRUÇÃO DA GALERIA E CONTROLES ──
-  function initGallery() {
-    container.innerHTML = '';
-    for (let i = 1; i <= totalImages; i++) {
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = `scene-card ${i === 1 ? 'active' : ''}`;
-      card.dataset.id = i;
-      const title = (customScenes && customScenes[i - 1] && customScenes[i - 1].title)
-        ? customScenes[i - 1].title
-        : `Foto ${i}`;
-      card.title = title;
-      card.setAttribute('aria-label', title);
-      card.innerHTML = `<span>${i}</span>`;
-      card.onclick = () => switchScene(i);
-      container.appendChild(card);
-    }
-  }
-
-  function updateUI(id) {
-    const labelText = `Foto ${id} / ${totalImages}`;
-    counter.textContent = labelText;
-    vrCounterText.setAttribute('value', labelText);
-
-    if (customScenes && customScenes[id - 1] && customScenes[id - 1].title) {
-      sceneTitleEl.textContent = customScenes[id - 1].title;
-    } else {
-      sceneTitleEl.textContent = 'Explore em 360°';
+  function resolveSceneUrl(globalIndex) {
+    if (resolvedUrlCache.has(globalIndex)) {
+      return Promise.resolve(resolvedUrlCache.get(globalIndex));
     }
 
-    document.querySelectorAll('.scene-card').forEach(c => {
-      const isTarget = parseInt(c.dataset.id, 10) === id;
-      c.classList.toggle('active', isTarget);
-      c.classList.remove('loading-card');
+    const item = playlist[globalIndex];
+    const candidates = getCandidateUrls(item);
+
+    return new Promise((resolve, reject) => {
+      let idx = 0;
+      function tryNext() {
+        if (idx >= candidates.length) {
+          reject(new Error(`Nenhuma imagem encontrada para "${item.titulo}". Verifique a pasta ${item.pasta}`));
+          return;
+        }
+        const candidateUrl = candidates[idx++];
+        preloadImage(candidateUrl)
+          .then(() => {
+            resolvedUrlCache.set(globalIndex, candidateUrl);
+            resolve(candidateUrl);
+          })
+          .catch(tryNext);
+      }
+      tryNext();
+    });
+  }
+
+  function prefetchNeighbors(globalIndex) {
+    const nextIdx = (globalIndex + 1) % playlist.length;
+    const prevIdx = (globalIndex - 1 + playlist.length) % playlist.length;
+    resolveSceneUrl(nextIdx).catch(() => {});
+    resolveSceneUrl(prevIdx).catch(() => {});
+  }
+
+  /**
+   * ============================================================================
+   * 4. RENDERIZAÇÃO DO MENU ACORDEÃO E ATUALIZAÇÃO DE INTERFACE
+   * ============================================================================
+   */
+  function buildAccordionMenu() {
+    accordionContainer.innerHTML = '';
+
+    LUGARES_PALMAS.forEach((lugar, catIndex) => {
+      const categoryEl = document.createElement('div');
+      categoryEl.className = `category-item ${catIndex === 0 ? 'expanded' : ''}`;
+      categoryEl.dataset.catIndex = catIndex;
+
+      // Botão Cabeçalho da Categoria
+      const headerBtn = document.createElement('button');
+      headerBtn.type = 'button';
+      headerBtn.className = 'category-header';
+      headerBtn.innerHTML = `
+        <div class="category-title-wrap">
+          <span class="category-icon"></span>
+          <span>${lugar.nome}</span>
+        </div>
+        <div class="category-meta">
+          <span class="category-count">${lugar.cenas.length}</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      `;
+
+      // Container expansível das cenas
+      const scenesWrapper = document.createElement('div');
+      scenesWrapper.className = 'category-scenes';
+      const scenesInner = document.createElement('div');
+      scenesInner.className = 'category-scenes-inner';
+
+      lugar.cenas.forEach((cena, sceneIndex) => {
+        const playlistObj = playlist.find(
+          p => p.catIndex === catIndex && p.sceneIndex === sceneIndex
+        );
+
+        const sceneBtn = document.createElement('button');
+        sceneBtn.type = 'button';
+        sceneBtn.className = `scene-btn ${playlistObj.globalIndex === 0 ? 'active' : ''}`;
+        sceneBtn.dataset.globalIndex = playlistObj.globalIndex;
+        sceneBtn.innerHTML = `
+          <div class="scene-btn-left">
+            <span class="scene-num">${String(sceneIndex + 1).padStart(2, '0')}</span>
+            <span class="scene-name">${cena.titulo}</span>
+          </div>
+        `;
+
+        sceneBtn.addEventListener('click', () => {
+          switchScene(playlistObj.globalIndex);
+          // No celular, recolhe o menu automaticamente ao escolher a cena para liberar a visão
+          if (window.innerWidth <= 768) {
+            sidebar.classList.add('collapsed');
+          }
+        });
+
+        scenesInner.appendChild(sceneBtn);
+      });
+
+      scenesWrapper.appendChild(scenesInner);
+      categoryEl.appendChild(headerBtn);
+      categoryEl.appendChild(scenesWrapper);
+      accordionContainer.appendChild(categoryEl);
+
+      // Lógica de abrir/fechar o Acordeão
+      headerBtn.addEventListener('click', () => {
+        const isExpanded = categoryEl.classList.contains('expanded');
+        // Fecha outras categorias para manter o menu limpo
+        document.querySelectorAll('.category-item').forEach(el => {
+          el.classList.remove('expanded');
+          el.querySelector('.category-scenes').style.maxHeight = null;
+        });
+
+        if (!isExpanded) {
+          categoryEl.classList.add('expanded');
+          scenesWrapper.style.maxHeight = `${scenesInner.scrollHeight + 24}px`;
+        }
+      });
+
+      // Inicializa a primeira categoria aberta
+      if (catIndex === 0) {
+        requestAnimationFrame(() => {
+          scenesWrapper.style.maxHeight = `${scenesInner.scrollHeight + 24}px`;
+        });
+      }
+    });
+  }
+
+  function updateActiveUI(globalIndex) {
+    const item = playlist[globalIndex];
+
+    // Atualiza textos do topo e do HUD VR
+    badgeCategory.textContent = item.categoriaNome;
+    badgeScene.textContent = item.titulo;
+    sceneCounter.textContent = `Cena ${globalIndex + 1} / ${playlist.length}`;
+    vrCounterText.setAttribute('value', `${item.categoriaNome} (${item.sceneIndex + 1}/${LUGARES_PALMAS[item.catIndex].cenas.length})`);
+
+    // Destaca o botão ativo no menu
+    document.querySelectorAll('.scene-btn').forEach(btn => {
+      const idx = parseInt(btn.dataset.globalIndex, 10);
+      btn.classList.toggle('active', idx === globalIndex);
     });
 
-    const activeBtn = document.querySelector('.scene-card.active');
-    if (activeBtn) {
-      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    // Garante que a categoria correspondente esteja expandida no acordeão
+    document.querySelectorAll('.category-item').forEach(catEl => {
+      const catIdx = parseInt(catEl.dataset.catIndex, 10);
+      const wrapper = catEl.querySelector('.category-scenes');
+      const inner = catEl.querySelector('.category-scenes-inner');
+      if (catIdx === item.catIndex) {
+        catEl.classList.add('expanded');
+        wrapper.style.maxHeight = `${inner.scrollHeight + 24}px`;
+      } else {
+        catEl.classList.remove('expanded');
+        wrapper.style.maxHeight = null;
+      }
+    });
   }
 
-  // ── 3. TROCA DE CENA SINCRONIZADA COM O DOWNLOAD REAL DA IMAGEM ──
-  async function switchScene(id) {
-    if (id === currentScene || isTransitioning || id < 1 || id > totalImages) return;
-    
-    isTransitioning = true;
-    const targetCard = document.querySelector(`.scene-card[data-id="${id}"]`);
-    if (targetCard) targetCard.classList.add('loading-card');
+  /**
+   * ============================================================================
+   * 5. TRANSIÇÃO DE CENAS 360° (FADE-OUT / PRELOAD / FADE-IN)
+   * ============================================================================
+   */
+  async function switchScene(targetGlobalIndex) {
+    if (isTransitioning || targetGlobalIndex === currentGlobalIndex) return;
+    if (targetGlobalIndex < 0 || targetGlobalIndex >= playlist.length) return;
 
-    // Exibe indicador discreto se a conexão demorar mais que 150ms
+    isTransitioning = true;
     const loaderTimer = setTimeout(() => miniLoader.classList.add('visible'), 150);
 
     try {
-      // 1. Garante que a imagem já foi baixada antes de apagar a tela
-      const validUrl = await resolveImageUrl(id);
+      const validUrl = await resolveSceneUrl(targetGlobalIndex);
       clearTimeout(loaderTimer);
       miniLoader.classList.remove('visible');
 
-      // 2. Faz o fade suave para preto
+      // Inicia transição fade-out
       flash.classList.add('active');
 
       setTimeout(() => {
-        currentScene = id;
+        currentGlobalIndex = targetGlobalIndex;
         skybox.setAttribute('src', validUrl);
-        updateUI(id);
+        updateActiveUI(targetGlobalIndex);
 
-        // 3. Aguarda um breve momento para a GPU aplicar a textura e remove o flash
+        // Conclui fade-in após aplicar a textura na esfera 360
         setTimeout(() => {
           flash.classList.remove('active');
           isTransitioning = false;
-          prefetchNeighbors(id);
+          prefetchNeighbors(targetGlobalIndex);
         }, 220);
-      }, 250);
+      }, 260);
 
-    } catch (err) {
+    } catch (error) {
       clearTimeout(loaderTimer);
       miniLoader.classList.remove('visible');
-      if (targetCard) targetCard.classList.remove('loading-card');
-      console.warn(`Não foi possível carregar a cena ${id}:`, err);
+      console.warn(error.message);
       isTransitioning = false;
     }
   }
 
-  // ── 4. INTERATIVIDADE (VR, Touch, Mouse e Teclado) ──
-  function setupInteractions() {
-    // Botões 3D dentro do modo VR
-    document.getElementById('vr-prev-btn').addEventListener('click', () => {
-      const prev = currentScene > 1 ? currentScene - 1 : totalImages;
-      switchScene(prev);
+  /**
+   * ============================================================================
+   * 6. EVENTOS DE INTERAÇÃO (TOUCH, MOUSE, TECLADO E VR)
+   * ============================================================================
+   */
+  function setupEventListeners() {
+    // Abrir/fechar menu lateral
+    menuToggleBtn.addEventListener('click', () => {
+      document.body.classList.remove('free-view-mode');
+      freeViewBtn.classList.remove('active');
+      sidebar.classList.toggle('collapsed');
     });
 
-    document.getElementById('vr-next-btn').addEventListener('click', () => {
-      const next = currentScene < totalImages ? currentScene + 1 : 1;
-      switchScene(next);
+    closeSidebarBtn.addEventListener('click', () => {
+      sidebar.classList.add('collapsed');
     });
 
-    // Pausa rotação automática quando o usuário arrasta a câmera (Mouse ou Touch)
+    // Botão Visão Livre (oculta toda a UI para girar o celular sem obstrução)
+    freeViewBtn.addEventListener('click', () => {
+      const isFree = document.body.classList.toggle('free-view-mode');
+      freeViewBtn.classList.toggle('active', isFree);
+    });
+
+    // Botões inferiores Anterior / Próxima
+    const goPrev = () => {
+      const prevIdx = (currentGlobalIndex - 1 + playlist.length) % playlist.length;
+      switchScene(prevIdx);
+    };
+    const goNext = () => {
+      const nextIdx = (currentGlobalIndex + 1) % playlist.length;
+      switchScene(nextIdx);
+    };
+
+    document.getElementById('btn-prev-scene').addEventListener('click', goPrev);
+    document.getElementById('btn-next-scene').addEventListener('click', goNext);
+
+    // Botões 3D dentro dos Óculos VR
+    document.getElementById('vr-prev-btn').addEventListener('click', goPrev);
+    document.getElementById('vr-next-btn').addEventListener('click', goNext);
+
+    // Teclado (Setas Esquerda/Direita e tecla M para Menu)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') goNext();
+      else if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key.toLowerCase() === 'm') sidebar.classList.toggle('collapsed');
+    });
+
+    // Pausa rotação automática ao tocar ou arrastar a cena 360
     const pauseRotation = () => skybox.emit('pause-rotation');
     const resumeRotation = () => {
       if (!isInVR) skybox.emit('resume-rotation');
@@ -553,90 +1119,65 @@
     window.addEventListener('touchstart', pauseRotation, { passive: true });
     window.addEventListener('touchend', resumeRotation, { passive: true });
 
-    // Desativa rotação automática e oculta UI 2D ao entrar nos Óculos VR (evita enjoo)
+    // Eventos de entrada e saída do Modo Óculos VR
     sceneEl.addEventListener('enter-vr', () => {
       isInVR = true;
-      uiOverlay.classList.add('vr-hidden');
+      uiLayer.classList.add('vr-hidden');
       pauseRotation();
     });
 
     sceneEl.addEventListener('exit-vr', () => {
       isInVR = false;
-      uiOverlay.classList.remove('vr-hidden');
+      uiLayer.classList.remove('vr-hidden');
       resumeRotation();
-    });
-
-    // Rolagem horizontal com a roda do mouse no seletor de fotos
-    container.addEventListener('wheel', (e) => {
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        container.scrollLeft += e.deltaY * 1.5;
-      }
-    }, { passive: false });
-
-    // Navegação pelas setas do teclado
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') {
-        switchScene(currentScene < totalImages ? currentScene + 1 : 1);
-      } else if (e.key === 'ArrowLeft') {
-        switchScene(currentScene > 1 ? currentScene - 1 : totalImages);
-      }
     });
   }
 
-  // ── 5. INICIALIZAÇÃO SEGURA (Sem risco de travar na tela de loading) ──
-  async function bootstrap() {
-    // Tenta buscar opcionalmente um arquivo cenas.json; se não existir, usa 1..48 normalmente
-    try {
-      const res = await fetch(`${imagePath}cenas.json`, { cache: 'no-cache' });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          customScenes = data;
-          totalImages = data.length;
-        }
-      }
-    } catch (_) {
-      // Segue silenciosamente com a configuração padrão de 48 imagens
+  /**
+   * ============================================================================
+   * 7. INICIALIZAÇÃO SEGURA
+   * ============================================================================
+   */
+  async function initApp() {
+    buildAccordionMenu();
+    setupEventListeners();
+
+    // Em telas pequenas de celular, inicia com o menu recolhido para priorizar a foto 360
+    if (window.innerWidth <= 768) {
+      sidebar.classList.add('collapsed');
     }
 
-    initGallery();
-    setupInteractions();
-
-    // Timeout de segurança: nunca deixa o usuário preso na tela de loading por mais de 6s
-    const safetyUnlock = setTimeout(() => {
-      loading.classList.add('hidden');
+    const safetyTimeout = setTimeout(() => {
+      loadingScreen.classList.add('hidden');
     }, 6000);
 
     try {
-      const firstUrl = await resolveImageUrl(1);
+      const firstUrl = await resolveSceneUrl(0);
       skybox.setAttribute('src', firstUrl);
-      updateUI(1);
-      prefetchNeighbors(1);
-    } catch (e) {
-      // Fallback direto caso todas as verificações falhem
-      skybox.setAttribute('src', `${imagePath}1.jpg`);
+      updateActiveUI(0);
+      prefetchNeighbors(0);
+    } catch (err) {
+      console.warn(err.message);
+      skybox.setAttribute('src', `${FALLBACK_LEGACY_PATH}1.jpg`);
+      updateActiveUI(0);
     }
 
-    const hideLoadingScreen = () => {
-      clearTimeout(safetyUnlock);
-      setTimeout(() => {
-        loading.classList.add('hidden');
-      }, 400);
+    const unlockScreen = () => {
+      clearTimeout(safetyTimeout);
+      setTimeout(() => loadingScreen.classList.add('hidden'), 350);
     };
 
-    // Verifica se o A-Frame já carregou antes ou aguarda o evento
     if (sceneEl.hasLoaded) {
-      hideLoadingScreen();
+      unlockScreen();
     } else {
-      sceneEl.addEventListener('loaded', hideLoadingScreen, { once: true });
+      sceneEl.addEventListener('loaded', unlockScreen, { once: true });
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
+    document.addEventListener('DOMContentLoaded', initApp);
   } else {
-    bootstrap();
+    initApp();
   }
 </script>
 
