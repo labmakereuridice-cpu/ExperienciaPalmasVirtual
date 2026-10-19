@@ -2,11 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Galeria Imersiva 360° | VR Mode</title>
+  
+  <!-- Pré-conexão para acelerar carregamento das fontes e biblioteca no GitHub Pages -->
+  <link rel="preconnect" href="https://aframe.io" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
   <!-- Bibliotecas Core -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,10 +22,11 @@
       overflow: hidden;
       background: #000;
       font-family: 'DM Sans', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     /* ── CONFIGURAÇÃO DO BOTÃO VR (CRUCIAL) ── */
-    /* Posiciona o botão acima da interface de seleção de fotos */
     .a-enter-vr {
       z-index: 10000 !important;
       bottom: 140px !important; 
@@ -27,9 +34,14 @@
       display: block !important;
     }
     .a-enter-vr-button {
-      background-color: rgba(0, 210, 255, 0.8) !important;
+      background-color: rgba(0, 210, 255, 0.85) !important;
       border-radius: 8px !important;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+      transition: transform 0.2s ease, background-color 0.2s ease !important;
+    }
+    .a-enter-vr-button:hover {
+      background-color: rgba(0, 210, 255, 1) !important;
+      transform: scale(1.05);
     }
 
     /* UI Overlay */
@@ -41,6 +53,11 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      transition: opacity 0.3s ease;
+    }
+    #ui.vr-hidden {
+      opacity: 0;
+      pointer-events: none !important;
     }
 
     /* Cabeçalho */
@@ -50,6 +67,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 15px;
     }
     #header-info h1 {
       color: #fff;
@@ -58,21 +76,62 @@
       letter-spacing: 1px;
       text-transform: uppercase;
     }
+    #scene-title {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
     #scene-counter {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       padding: 8px 18px;
       border-radius: 30px;
       color: #00d2ff;
       font-size: 0.85rem;
       font-weight: 600;
       border: 1px solid rgba(0, 210, 255, 0.3);
+      white-space: nowrap;
+    }
+
+    /* Indicador sutil de download entre trocas de fotos */
+    #mini-loader {
+      position: fixed;
+      top: 85px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(0, 210, 255, 0.4);
+      color: #00d2ff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.25s ease;
+      z-index: 50;
+      pointer-events: none;
+    }
+    #mini-loader.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .mini-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0, 210, 255, 0.2);
+      border-top-color: #00d2ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
     /* Seletor de Cenas Inferior */
     #scene-selector {
-      background: linear-gradient(to top, rgba(0,0,0,0.9) 30%, transparent 100%);
-      padding: 20px 0 40px;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 30%, transparent 100%);
+      padding: 20px 0 35px;
       pointer-events: all;
     }
     
@@ -85,6 +144,7 @@
       max-width: 1400px;
       margin: 0 auto;
       -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
     }
     
     #cards-container::-webkit-scrollbar {
@@ -93,29 +153,31 @@
 
     .scene-card {
       flex: 0 0 auto;
-      width: 65px;
-      height: 65px;
-      background: rgba(255,255,255,0.05);
-      border: 2px solid rgba(255,255,255,0.1);
+      width: 62px;
+      height: 62px;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.12);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
+      outline: none;
     }
 
     .scene-card span {
       color: #fff;
       font-weight: 500;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
+      pointer-events: none;
     }
 
     .scene-card:hover {
       border-color: #00d2ff;
       transform: scale(1.1);
-      background: rgba(0, 210, 255, 0.1);
+      background: rgba(0, 210, 255, 0.12);
     }
 
     .scene-card.active {
@@ -129,7 +191,17 @@
       font-weight: 700;
     }
 
-    /* Carregamento */
+    .scene-card.loading-card {
+      border-color: #00d2ff;
+      animation: pulseBorder 1s infinite alternate;
+    }
+
+    @keyframes pulseBorder {
+      from { box-shadow: 0 0 5px rgba(0, 210, 255, 0.2); }
+      to { box-shadow: 0 0 18px rgba(0, 210, 255, 0.8); }
+    }
+
+    /* Carregamento Inicial */
     #loading {
       position: fixed;
       inset: 0;
@@ -141,7 +213,10 @@
       z-index: 1000;
       transition: opacity 0.6s ease;
     }
-    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
     
     .spinner {
       width: 50px;
@@ -153,6 +228,16 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    #loading-text {
+      color: #00d2ff;
+      margin-top: 25px;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 0 20px;
+    }
+
     #flash {
       position: fixed;
       inset: 0;
@@ -160,45 +245,85 @@
       opacity: 0;
       pointer-events: none;
       z-index: 99;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
     }
     #flash.active { opacity: 1; }
+
+    @media (max-width: 600px) {
+      #header { padding: 16px 20px; }
+      #header-info h1 { font-size: 0.95rem; }
+      #cards-container { padding: 10px 20px; gap: 10px; }
+      .scene-card { width: 54px; height: 54px; }
+      .scene-card span { font-size: 0.95rem; }
+      .a-enter-vr { bottom: 125px !important; right: 16px !important; }
+    }
   </style>
 </head>
 <body>
 
 <div id="loading">
   <div class="spinner"></div>
-  <p style="color: #00d2ff; margin-top: 25px; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;">Acessando Experiência 360°...</p>
+  <p id="loading-text">Acessando Experiência 360°...</p>
+</div>
+
+<div id="mini-loader">
+  <div class="mini-spinner"></div>
+  <span>Carregando cena...</span>
 </div>
 
 <div id="flash"></div>
 
-<!-- vr-mode-ui habilita o botão de VR no canto inferior direito -->
+<!-- Cena A-Frame Otimizada -->
 <a-scene id="main-scene" 
          vr-mode-ui="enabled: true" 
          embedded 
          style="position:fixed; inset:0;" 
-         renderer="antialias: true; colorManagement: true;">
+         renderer="antialias: true; colorManagement: true; powerPreference: high-performance;">
   
-  <a-assets id="assets-manager">
-    <!-- Imagens carregadas dinamicamente -->
-  </a-assets>
+  <a-assets id="assets-manager" timeout="15000"></a-assets>
 
-  <!-- Skybox com rotação automática suave que pausa ao interagir -->
+  <!-- Skybox com rotação controlada de forma inteligente -->
   <a-sky id="skybox" 
          src="" 
          rotation="0 -90 0" 
-         animation="property: rotation; to: 0 270 0; dur: 120000; easing: linear; loop: true; pauseEvents: mousedown; resumeEvents: mouseup">
+         animation="property: rotation; to: 0 270 0; dur: 120000; easing: linear; loop: true; pauseEvents: pause-rotation; resumeEvents: resume-rotation">
   </a-sky>
 
+  <!-- Painel de Navegação 3D exclusivo para quem está com os Óculos VR (acionado pelo olhar/fuse) -->
+  <a-entity id="vr-hud" position="0 -0.65 -1.8" rotation="-25 0 0">
+    <!-- Botão Anterior -->
+    <a-entity id="vr-prev-btn" class="clickable" position="-0.45 0 0"
+              geometry="primitive: plane; width: 0.7; height: 0.28"
+              material="color: #0a0a0a; opacity: 0.8; shader: flat"
+              animation__mouseenter="property: scale; to: 1.08 1.08 1; dur: 200; startEvents: mouseenter"
+              animation__mouseleave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+      <a-text value="< ANTERIOR" align="center" color="#00d2ff" width="2.2" position="0 0 0.01"></a-text>
+    </a-entity>
+
+    <!-- Botão Próxima -->
+    <a-entity id="vr-next-btn" class="clickable" position="0.45 0 0"
+              geometry="primitive: plane; width: 0.7; height: 0.28"
+              material="color: #0a0a0a; opacity: 0.8; shader: flat"
+              animation__mouseenter="property: scale; to: 1.08 1.08 1; dur: 200; startEvents: mouseenter"
+              animation__mouseleave="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave">
+      <a-text value="PROXIMA >" align="center" color="#00d2ff" width="2.2" position="0 0 0.01"></a-text>
+    </a-entity>
+
+    <!-- Indicador 3D do número da foto -->
+    <a-text id="vr-counter-text" value="Foto 1 / 48" align="center" color="#ffffff" width="2" position="0 0.24 0"></a-text>
+  </a-entity>
+
   <a-camera look-controls="reverseMouseDrag: false; touchEnabled: true" wasd-controls="enabled: false">
-    <!-- Cursor para interação quando estiver em modo VR -->
-    <a-entity cursor="fuse: true; fuseTimeout: 1500"
+    <!-- Cursor para interação em modo VR com feedback visual de progresso (fuse) -->
+    <a-entity id="vr-cursor"
+              cursor="fuse: true; fuseTimeout: 1500"
               position="0 0 -1"
-              geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-              material="color: #00d2ff; shader: flat; opacity: 0.5"
-              raycaster="objects: .clickable">
+              geometry="primitive: ring; radiusInner: 0.018; radiusOuter: 0.028"
+              material="color: #00d2ff; shader: flat; opacity: 0.65"
+              raycaster="objects: .clickable"
+              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.2 0.2 1"
+              animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 200; to: 1 1 1"
+              animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.2 0.2 1; to: 1 1 1">
     </a-entity>
   </a-camera>
 </a-scene>
@@ -207,6 +332,7 @@
   <div id="header">
     <div id="header-info">
       <h1>Imersão VR</h1>
+      <div id="scene-title">Explore em 360°</div>
     </div>
     <div id="scene-counter">Foto 1 / 48</div>
   </div>
@@ -219,67 +345,299 @@
 </div>
 
 <script>
-  const totalImages = 48;
-  const imagePath = './assets/images/'; 
+  // ── CONFIGURAÇÃO PADRÃO (Mantém compatibilidade total com sua pasta atual) ──
+  let totalImages = 48;
+  const imagePath = './assets/images/';
   
+  // Lista opcional de metadados caso queira usar cenas.json no futuro
+  let customScenes = null;
+
+  const sceneEl = document.getElementById('main-scene');
   const container = document.getElementById('cards-container');
   const skybox = document.getElementById('skybox');
   const counter = document.getElementById('scene-counter');
+  const sceneTitleEl = document.getElementById('scene-title');
+  const vrCounterText = document.getElementById('vr-counter-text');
   const flash = document.getElementById('flash');
   const loading = document.getElementById('loading');
-  
+  const miniLoader = document.getElementById('mini-loader');
+  const uiOverlay = document.getElementById('ui');
+
   let currentScene = 1;
   let isTransitioning = false;
+  let isInVR = false;
 
+  // Cache em memória de URLs já validadas para evitar requisições repetidas
+  const resolvedUrls = new Map();
+  const imageCache = new Map();
+  const MAX_CACHE_SIZE = 6; // Limita o cache para não estourar a memória em celulares
+
+  // ── 1. RESOLUÇÃO INTELIGENTE DE IMAGENS (Evita Erro 404 no GitHub Pages) ──
+  function resolveImageUrl(id) {
+    if (resolvedUrls.has(id)) {
+      return Promise.resolve(resolvedUrls.get(id));
+    }
+
+    // Se houver um manifesto cenas.json carregado, usa o arquivo definido nele
+    if (customScenes && customScenes[id - 1] && customScenes[id - 1].src) {
+      const explicitUrl = customScenes[id - 1].src.startsWith('http') || customScenes[id - 1].src.startsWith('./')
+        ? customScenes[id - 1].src
+        : `${imagePath}${customScenes[id - 1].src}`;
+      return preloadImageElement(explicitUrl).then(() => {
+        resolvedUrls.set(id, explicitUrl);
+        return explicitUrl;
+      });
+    }
+
+    // Tenta a configuração padrão (.jpg), e faz fallback automático para .JPG ou .webp
+    const candidates = [
+      `${imagePath}${id}.jpg`,
+      `${imagePath}${id}.JPG`,
+      `${imagePath}${id}.webp`
+    ];
+
+    return new Promise((resolve, reject) => {
+      let index = 0;
+      function tryNext() {
+        if (index >= candidates.length) {
+          reject(new Error(`Imagem ${id} não encontrada em ${imagePath}`));
+          return;
+        }
+        const url = candidates[index++];
+        preloadImageElement(url)
+          .then(() => {
+            resolvedUrls.set(id, url);
+            resolve(url);
+          })
+          .catch(tryNext);
+      }
+      tryNext();
+    });
+  }
+
+  function preloadImageElement(url) {
+    if (imageCache.has(url)) {
+      return Promise.resolve(imageCache.get(url));
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // Gerenciamento simples de fila de memória (FIFO)
+        if (imageCache.size >= MAX_CACHE_SIZE) {
+          const oldestKey = imageCache.keys().next().value;
+          imageCache.delete(oldestKey);
+        }
+        imageCache.set(url, img);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // Pré-carrega silenciosamente a foto seguinte e a anterior para transição instantânea
+  function prefetchNeighbors(id) {
+    const nextId = id < totalImages ? id + 1 : 1;
+    const prevId = id > 1 ? id - 1 : totalImages;
+    resolveImageUrl(nextId).catch(() => {});
+    resolveImageUrl(prevId).catch(() => {});
+  }
+
+  // ── 2. CONSTRUÇÃO DA GALERIA E CONTROLES ──
   function initGallery() {
+    container.innerHTML = '';
     for (let i = 1; i <= totalImages; i++) {
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = `scene-card ${i === 1 ? 'active' : ''}`;
       card.dataset.id = i;
+      const title = (customScenes && customScenes[i - 1] && customScenes[i - 1].title)
+        ? customScenes[i - 1].title
+        : `Foto ${i}`;
+      card.title = title;
+      card.setAttribute('aria-label', title);
       card.innerHTML = `<span>${i}</span>`;
       card.onclick = () => switchScene(i);
       container.appendChild(card);
     }
   }
 
-  function switchScene(id) {
-    if (id === currentScene || isTransitioning) return;
-    
-    isTransitioning = true;
-    currentScene = id;
-    flash.classList.add('active');
+  function updateUI(id) {
+    const labelText = `Foto ${id} / ${totalImages}`;
+    counter.textContent = labelText;
+    vrCounterText.setAttribute('value', labelText);
 
-    setTimeout(() => {
-      // Caminho relativo para GitHub Pages
-      const newImgUrl = `${imagePath}${id}.jpg`;
-      skybox.setAttribute('src', newImgUrl);
-      
-      counter.textContent = `Foto ${id} / ${totalImages}`;
-      
-      document.querySelectorAll('.scene-card').forEach(c => {
-        c.classList.toggle('active', parseInt(c.dataset.id) === id);
-      });
+    if (customScenes && customScenes[id - 1] && customScenes[id - 1].title) {
+      sceneTitleEl.textContent = customScenes[id - 1].title;
+    } else {
+      sceneTitleEl.textContent = 'Explore em 360°';
+    }
 
-      const activeBtn = document.querySelector('.scene-card.active');
+    document.querySelectorAll('.scene-card').forEach(c => {
+      const isTarget = parseInt(c.dataset.id, 10) === id;
+      c.classList.toggle('active', isTarget);
+      c.classList.remove('loading-card');
+    });
+
+    const activeBtn = document.querySelector('.scene-card.active');
+    if (activeBtn) {
       activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-
-      setTimeout(() => {
-        flash.classList.remove('active');
-        isTransitioning = false;
-      }, 300);
-    }, 300);
+    }
   }
 
-  window.onload = () => {
-    initGallery();
-    skybox.setAttribute('src', `${imagePath}1.jpg`);
+  // ── 3. TROCA DE CENA SINCRONIZADA COM O DOWNLOAD REAL DA IMAGEM ──
+  async function switchScene(id) {
+    if (id === currentScene || isTransitioning || id < 1 || id > totalImages) return;
+    
+    isTransitioning = true;
+    const targetCard = document.querySelector(`.scene-card[data-id="${id}"]`);
+    if (targetCard) targetCard.classList.add('loading-card');
 
-    document.querySelector('a-scene').addEventListener('loaded', () => {
+    // Exibe indicador discreto se a conexão demorar mais que 150ms
+    const loaderTimer = setTimeout(() => miniLoader.classList.add('visible'), 150);
+
+    try {
+      // 1. Garante que a imagem já foi baixada antes de apagar a tela
+      const validUrl = await resolveImageUrl(id);
+      clearTimeout(loaderTimer);
+      miniLoader.classList.remove('visible');
+
+      // 2. Faz o fade suave para preto
+      flash.classList.add('active');
+
+      setTimeout(() => {
+        currentScene = id;
+        skybox.setAttribute('src', validUrl);
+        updateUI(id);
+
+        // 3. Aguarda um breve momento para a GPU aplicar a textura e remove o flash
+        setTimeout(() => {
+          flash.classList.remove('active');
+          isTransitioning = false;
+          prefetchNeighbors(id);
+        }, 220);
+      }, 250);
+
+    } catch (err) {
+      clearTimeout(loaderTimer);
+      miniLoader.classList.remove('visible');
+      if (targetCard) targetCard.classList.remove('loading-card');
+      console.warn(`Não foi possível carregar a cena ${id}:`, err);
+      isTransitioning = false;
+    }
+  }
+
+  // ── 4. INTERATIVIDADE (VR, Touch, Mouse e Teclado) ──
+  function setupInteractions() {
+    // Botões 3D dentro do modo VR
+    document.getElementById('vr-prev-btn').addEventListener('click', () => {
+      const prev = currentScene > 1 ? currentScene - 1 : totalImages;
+      switchScene(prev);
+    });
+
+    document.getElementById('vr-next-btn').addEventListener('click', () => {
+      const next = currentScene < totalImages ? currentScene + 1 : 1;
+      switchScene(next);
+    });
+
+    // Pausa rotação automática quando o usuário arrasta a câmera (Mouse ou Touch)
+    const pauseRotation = () => skybox.emit('pause-rotation');
+    const resumeRotation = () => {
+      if (!isInVR) skybox.emit('resume-rotation');
+    };
+
+    window.addEventListener('mousedown', pauseRotation);
+    window.addEventListener('mouseup', resumeRotation);
+    window.addEventListener('touchstart', pauseRotation, { passive: true });
+    window.addEventListener('touchend', resumeRotation, { passive: true });
+
+    // Desativa rotação automática e oculta UI 2D ao entrar nos Óculos VR (evita enjoo)
+    sceneEl.addEventListener('enter-vr', () => {
+      isInVR = true;
+      uiOverlay.classList.add('vr-hidden');
+      pauseRotation();
+    });
+
+    sceneEl.addEventListener('exit-vr', () => {
+      isInVR = false;
+      uiOverlay.classList.remove('vr-hidden');
+      resumeRotation();
+    });
+
+    // Rolagem horizontal com a roda do mouse no seletor de fotos
+    container.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        container.scrollLeft += e.deltaY * 1.5;
+      }
+    }, { passive: false });
+
+    // Navegação pelas setas do teclado
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        switchScene(currentScene < totalImages ? currentScene + 1 : 1);
+      } else if (e.key === 'ArrowLeft') {
+        switchScene(currentScene > 1 ? currentScene - 1 : totalImages);
+      }
+    });
+  }
+
+  // ── 5. INICIALIZAÇÃO SEGURA (Sem risco de travar na tela de loading) ──
+  async function bootstrap() {
+    // Tenta buscar opcionalmente um arquivo cenas.json; se não existir, usa 1..48 normalmente
+    try {
+      const res = await fetch(`${imagePath}cenas.json`, { cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          customScenes = data;
+          totalImages = data.length;
+        }
+      }
+    } catch (_) {
+      // Segue silenciosamente com a configuração padrão de 48 imagens
+    }
+
+    initGallery();
+    setupInteractions();
+
+    // Timeout de segurança: nunca deixa o usuário preso na tela de loading por mais de 6s
+    const safetyUnlock = setTimeout(() => {
+      loading.classList.add('hidden');
+    }, 6000);
+
+    try {
+      const firstUrl = await resolveImageUrl(1);
+      skybox.setAttribute('src', firstUrl);
+      updateUI(1);
+      prefetchNeighbors(1);
+    } catch (e) {
+      // Fallback direto caso todas as verificações falhem
+      skybox.setAttribute('src', `${imagePath}1.jpg`);
+    }
+
+    const hideLoadingScreen = () => {
+      clearTimeout(safetyUnlock);
       setTimeout(() => {
         loading.classList.add('hidden');
-      }, 1000);
-    });
-  };
+      }, 400);
+    };
+
+    // Verifica se o A-Frame já carregou antes ou aguarda o evento
+    if (sceneEl.hasLoaded) {
+      hideLoadingScreen();
+    } else {
+      sceneEl.addEventListener('loaded', hideLoadingScreen, { once: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
 </script>
 
 </body>
